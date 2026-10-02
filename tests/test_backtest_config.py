@@ -80,3 +80,14 @@ def test_config_env_overrides_and_per_chain_thresholds(tmp_path):
     assert cfg.chains["robinhood"].thresholds.volume_multiplier == 5
     assert cfg.chains["robinhood"].thresholds.min_liquidity_usd == 25000
     assert cfg.chains["solana"].thresholds.min_liquidity_usd == 50000
+
+
+def test_pick_pool_prefers_launch_pool():
+    from scanner.backtest import pick_pool
+    pools = [
+        {"attributes": {"address": "late", "reserve_in_usd": "5000000", "pool_created_at": "2026-09-08T00:00:00Z"}},
+        {"attributes": {"address": "launch", "reserve_in_usd": "400000", "pool_created_at": "2026-07-13T00:00:00Z"}},
+        {"attributes": {"address": "dust", "reserve_in_usd": "10", "pool_created_at": "2026-07-01T00:00:00Z"}},
+    ]
+    assert pick_pool(pools)["attributes"]["address"] == "launch"
+    assert pick_pool(pools, "liquid")["attributes"]["address"] == "late"

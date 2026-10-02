@@ -79,6 +79,8 @@ def main(argv=None) -> int:
                     help="apply the liquidity filter using today's liquidity (lookahead)")
     bt.add_argument("--refresh", action="store_true", help="ignore cached history")
     bt.add_argument("--cache-dir", default="data/history_cache")
+    bt.add_argument("--pool-choice", choices=["earliest", "liquid"], default="earliest",
+                    help="earliest = launch pool (default); liquid = today's deepest pool")
     args = ap.parse_args(argv)
 
     cfg = load_config(args.config, include_disabled=args.cmd == "backtest")
@@ -98,7 +100,7 @@ def main(argv=None) -> int:
         if args.controls:
             inputs += backtest.load_inputs(args.controls, cfg, default_label="control")
         backtest.run(cfg, api, inputs, args.out, args.sweep, args.horizon_hours, args.max_days,
-                     args.cache_dir, args.refresh, args.current_liquidity)
+                     args.cache_dir, args.refresh, args.current_liquidity, args.pool_choice)
         return 0
 
     poller = Poller(cfg, Store(cfg.db_path), api, Telegram())

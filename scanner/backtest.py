@@ -129,13 +129,25 @@ def load_inputs(path: str, cfg: Config, default_label: str = "runner") -> list[T
 
 # ---------------- history ----------------
 
+def pick_pool(pools: list[dict], choice: str = "earliest") -> Optional[dict]:
+    """'earliest': the launch pool (earliest created with >= $1k liquidity today), which is where
+    trading happened when the token crossed $1M and so what the live bot would have followed.
+    'liquid': today's deepest pool, which is often a later pool opened after the run."""
+    liq = lambda p: to_float(p["attributes"].get("reserve_in_usd")) or 0
+    if choice == "liquid":
+        return max(pools, key=liq, default=None)
+    alive = [p for p in pools if liq(p) >= 1000] or pools
+    return min(alive, key=lambda p: gt.parse_ts(p["attributes"].get("pool_created_at")) or float("inf"), default=None)
+
+
 def fetch_history(api: ApiClient, cfg: Config, tok: TokenInput, cache_dir: Optional[str],
-                  max_days: float, refresh: bool = False) -> History:
-    cache_path = os.path.join(cache_dir, f"{tok.chain}_{tok.address}.json") if cache_dir else None
+                  max_days: float, refresh: bool = False, pool_choice: str = "earliest") -> History:
+    cache_path = os.path.join(cache_dir, f"{tok.chain}_{tok.address}_{tok.pool or pool_choice}.json") \
+        if cache_dir else None
     if cache_path and not refresh and os.path.exists(cache_path):
         with open(cache_path) as fh:
             return History(**json.load(fh))
-    h = _fetch_history(api, cfg, tok, max_days)
+    h = _fetch_history(api, cfg, tok, max_days, pool_choice)
     if cache_path and h.error is None:
         os.makedirs(cache_dir, exist_ok=True)
         with open(cache_path, "w") as fh:
@@ -143,7 +155,7 @@ def fetch_history(api: ApiClient, cfg: Config, tok: TokenInput, cache_dir: Optio
     return h
 
 
-def _fetch_history(api: ApiClient, cfg: Config, tok: TokenInput, max_days: float) -> History:
+def _fetch_history(api: ApiClient, cfg: Config, tok: TokenInput, max_days: float, pool_choice: str) -> History:
     chain = cfg.chains[tok.chain]
     net = chain.geckoterminal_id
     h = History(chain=tok.chain, address=tok.address)
@@ -172,7 +184,7 @@ def _fetch_history(api: ApiClient, cfg: Config, tok: TokenInput, max_days: float
             pool = next((p for p in pools if norm_address(p["attributes"]["address"]) == norm_address(tok.pool)), None)
             h.pool = tok.pool
         else:
-            pool = max(pools, key=lambda p: to_float(p["attributes"].get("reserve_in_usd")) or 0, default=None)
+            pool = pick_pool(pools, pool_choice)
             h.pool = pool["attributes"]["address"] if pool else None
         if not h.pool:
             h.error = "no pools found"
@@ -327,12 +339,12 @@ def parse_sweep(specs: list[str]) -> list[dict]:
 
 def run(cfg: Config, api: ApiClient, inputs: list[TokenInput], out_dir: str, sweep: list[str],
         horizon_hours: float = 24, max_days: float = 14, cache_dir: Optional[str] = "data/history_cache",
-        refresh: bool = False, current_liquidity: bool = False) -> dict:
+        refresh: bool = False, current_liquidity: bool = False, pool_choice: str = "earliest") -> dict:
     os.makedirs(out_dir, exist_ok=True)
     histories = []
     for n, tok in enumerate(inputs, 1):
         log.info("[%d/%d] history %s %s", n, len(inputs), tok.chain, tok.address)
-        histories.append((tok, fetch_history(api, cfg, tok, cache_dir, max_days, refresh)))
+        histories.append((tok, fetch_history(api, cfg, tok, cache_dir, max_days, refresh, pool_choice)))
 
     def results_for(overrides: dict) -> list[TokenResult]:
         return [replay(h, replace(cfg.chains[tok.chain].thresholds, **overrides), tok.label,

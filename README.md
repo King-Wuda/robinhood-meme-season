@@ -153,7 +153,9 @@ python -m scanner backtest runners.csv --controls did_not_run.csv \
   optional `pool`. Chains can be written as `solana`, `bsc` / `BNB Chain`, `base`, `robinhood`.
   `--controls FILE` marks every token in that file as a control: a token that did *not* run.
   Controls are used to measure the false-positive rate.
-- **History:** comes from GeckoTerminal 5-minute OHLCV of the token's most liquid pool (default
+- **History:** comes from GeckoTerminal 5-minute OHLCV of the token's **launch pool** (the earliest
+  pool that still has at least $1k liquidity), because today's deepest pool often opened after the
+  token had already passed $1M. `--pool-choice liquid` uses the deepest pool instead. History goes back (default
   up to 14 days back, `--max-days`), cached in `data/history_cache/`.
   A token with no history is **listed as `history UNAVAILABLE: <reason>`** in the report, not
   skipped silently.
