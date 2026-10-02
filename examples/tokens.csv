@@ -1,0 +1,6 @@
+chain,address,label
+solana,7VertkgF9KLhxxJXHX6uaWuoYZTP9LdGj2bWmVXVpump,runner
+base,0x311935cd80b76769bf2ecc9d8ab7635b2139cf82,runner
+base,0x43e3af7c2b322b6f9627011a8f5fd2ee6f733bb6,control
+base,0x535a367b574073ff68e467d8abd9009c18eb7c9b,control
+robinhood,0x0fe97b2d477014d78a61829a3c41866912d469ea,control

@@ -1,0 +1,22 @@
+[Unit]
+Description=Meme coin momentum scanner (DEXScreener -> Telegram)
+After=network-online.target
+Wants=network-online.target
+# Crash-loop guard: at most 10 starts in 10 minutes, then systemd stops trying.
+StartLimitIntervalSec=600
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=scanner
+WorkingDirectory=/opt/meme-scanner
+EnvironmentFile=/etc/meme-scanner.env
+ExecStart=/opt/meme-scanner/.venv/bin/python -m scanner run
+Restart=always
+RestartSec=15
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
