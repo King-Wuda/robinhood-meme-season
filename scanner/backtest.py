@@ -81,6 +81,7 @@ class TokenResult:
     alert_ts: Optional[float] = None
     mcap_at_alert: Optional[float] = None
     volume_multiple: Optional[float] = None
+    trigger: str = ""  # "volume_spike", "early_launch" or both
     minutes_since_cross: Optional[float] = None
     peak_mcap_after: Optional[float] = None
     peak_multiple: Optional[float] = None
@@ -262,7 +263,8 @@ def replay(h: History, th: Thresholds, label: str, cooldown_hours: float, horizo
     r.alert_ts = t
     r.alert_time = datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     r.mcap_at_alert = mcaps[i]
-    r.volume_multiple = round(res.volume_multiple, 2)
+    r.volume_multiple = round(res.volume_multiple, 2) if res.volume_multiple is not None else None
+    r.trigger = "+".join(res.reasons)
     r.minutes_since_cross = round((t - res.crossed_at) / 60, 1) if res.crossed_at else None
     after = [x for x in c[i + 1:] if x[0] < t + horizon_hours * HOUR]
     if after:
@@ -367,7 +369,7 @@ def run(cfg: Config, api: ApiClient, inputs: list[TokenInput], out_dir: str, swe
                        if r.peak_multiple is not None else "no candles after alert yet")
             report.append(
                 f"  {r.chain:<10} {r.symbol or r.address:<14} {r.label:<7} fired: YES at {r.alert_time} "
-                f"mc {r.mcap_at_alert:,.0f} ({r.mcap_source}), vol {r.volume_multiple}x, {outcome}, "
+                f"mc {r.mcap_at_alert:,.0f} ({r.mcap_source}), vol {r.volume_multiple}x via {r.trigger}, {outcome}, "
                 f"alerts {r.n_alerts}")
     report += ["", "Summary:", format_summary(summary, horizon_hours)]
     if not current_liquidity:

@@ -28,8 +28,13 @@ Each poll (default every 90s):
    - a. market cap is between `market_cap_min` and `market_cap_max` (default $1M–$10M);
    - b. **crossover:** market cap was below `market_cap_min` at some point within `lookback_hours`
      (default 3h);
-   - c. **volume spike:** trailing 1h volume ≥ `volume_multiplier` (default 3) × the token's
-     trailing 6h hourly average;
+   - c. **either** a **volume spike** (trailing 1h volume ≥ `volume_multiplier`, default 3, × the
+     token's trailing 6h hourly average) **or** an **early launch**: the token was still under
+     `market_cap_min` within its first `launch_window_hours` (default 24) of trading. Young tokens
+     have no baseline of their own to spike against, so the spike test alone misses fast launches.
+     Set `launch_window_hours = 0` to disable this path, or `launch_min_volume_to_mcap` (e.g. 0.1)
+     to also require 1h volume of at least that fraction of market cap. Alerts are labelled
+     🚀 Momentum, 🆕 Early launch, or both;
    - d. liquidity ≥ `min_liquidity_usd` (default $50k) and pair age ≥ `min_pair_age_minutes`
      (default 15).
 5. **Cooldown.** Each token alerts at most once per 6h (configurable).

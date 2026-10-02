@@ -52,6 +52,7 @@ def test_alert_from_snapshot_history_then_cooldown(tmp_path):
     p.data["0xabc"] = pair(2_500_000)
     assert p.process_chain(chain, {}, NOW + 1800) == 1
     assert "Robinhood Chain" in tg.sent[0] and "3.0x" in tg.sent[0] and "0xabc" in tg.sent[0]
+    assert tg.sent[0].startswith("🚀🆕 Momentum + early launch")
 
     # Still firing 1h later, but inside the 6h cooldown.
     assert p.process_chain(chain, {}, NOW + 3600) == 0

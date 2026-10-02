@@ -166,10 +166,10 @@ class Poller:
             return 0
         chart = ds.chart_url(chain.dexscreener_id, p.pair_address) if chain.source == "dexscreener" else p.url
         msg = format_alert(p, res, now, th.market_cap_min, chart)
-        log.info("ALERT %s %s %s mc=%s vol=%.1fx", chain.name, p.symbol, p.token_address,
-                 usd(p.market_cap), res.volume_multiple)
+        log.info("ALERT %s %s %s mc=%s vol=%.1fx via %s", chain.name, p.symbol, p.token_address,
+                 usd(p.market_cap), res.volume_multiple or 0, "+".join(res.reasons))
         if self.telegram.send(msg) or not self.telegram.enabled:
-            self.store.record_alert(chain.name, p.token_address, now, p.market_cap, res.volume_multiple, msg)
+            self.store.record_alert(chain.name, p.token_address, now, p.market_cap, res.volume_multiple or 0, msg)
             return 1
         return 0  # send failed: not recorded, so it can retry next poll while still firing
 
@@ -226,6 +226,8 @@ def startup_message(cfg: Config) -> str:
         t = c.thresholds
         lines.append(f"• {c.name} via {c.source}: band {usd(t.market_cap_min)}-{usd(t.market_cap_max)}, "
                      f"vol ≥{t.volume_multiplier:g}x, lookback {t.lookback_hours:g}h, "
-                     f"liq ≥{usd(t.min_liquidity_usd)}, age ≥{t.min_pair_age_minutes:g}m")
+                     f"liq ≥{usd(t.min_liquidity_usd)}, age ≥{t.min_pair_age_minutes:g}m, "
+                     + (f"early-launch window {t.launch_window_hours:g}h" if t.launch_window_hours > 0
+                        else "early-launch off"))
     lines.append(f"Poll every {cfg.poll_interval_seconds}s, cooldown {cfg.alert_cooldown_hours}h")
     return "\n".join(lines)

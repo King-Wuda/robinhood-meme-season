@@ -32,6 +32,10 @@ lookback_hours = 3          # must have been below market_cap_min within this wi
 volume_multiplier = 3       # 1h volume >= this x own trailing-6h hourly average
 min_liquidity_usd = 50000
 min_pair_age_minutes = 15
+# Early launch: a token still under market_cap_min within its first N hours that crosses into the
+# band alerts WITHOUT needing the volume spike (young tokens have no baseline to spike against).
+launch_window_hours = 24            # 0 disables the early-launch path
+launch_min_volume_to_mcap = 0       # optional: require 1h volume >= this fraction of market cap (e.g. 0.1)
 
 # What gets tracked (pre-filter, before the trigger)
 [discovery]
@@ -76,6 +80,7 @@ market_cap_max = 10000000
 volume_multiplier = 3
 min_liquidity_usd = 50000
 min_pair_age_minutes = 15
+launch_window_hours = 24
 
 # Per-chain discovery floors are also allowed:
 # [chains.robinhood.discovery]

@@ -71,10 +71,13 @@ def format_alert(p: PairData, res: Result, now: float, band_min: float, chart: s
         lo, hi = now - res.crossed_at, now - res.crossed_after
         crossed = f"~{duration(hi)} ago" if hi - lo <= 180 else f"between {duration(lo)} and {duration(hi)} ago"
     age = duration(now - p.pair_created_at) if p.pair_created_at else "n/a"
+    header = "🆕 Early launch" if res.reasons == ["early_launch"] else "🚀 Momentum"
+    if res.reasons == ["volume_spike", "early_launch"]:
+        header = "🚀🆕 Momentum + early launch"
     return "\n".join([
-        f"🚀 <b>{e(p.name)} (${e(p.symbol)})</b> on {e(CHAIN_NAMES.get(p.chain, p.chain))}",
+        f"{header}: <b>{e(p.name)} (${e(p.symbol)})</b> on {e(CHAIN_NAMES.get(p.chain, p.chain))}",
         f"Market cap: <b>{usd(p.market_cap)}</b> ({p.mcap_source})",
-        f"Volume: <b>{res.volume_multiple:.1f}x</b> its own 6h hourly avg (1h vol {usd(p.vol_h1)})",
+        f"Volume: <b>{res.volume_multiple or 0:.1f}x</b> its own 6h hourly avg (1h vol {usd(p.vol_h1)})",
         f"Liquidity: {usd(p.liquidity_usd)}",
         f"Crossed {usd(band_min)}: {crossed}",
         f"Pair age: {age}",

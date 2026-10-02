@@ -15,6 +15,12 @@ class Thresholds:
     volume_multiplier: float = 3
     min_liquidity_usd: float = 50_000
     min_pair_age_minutes: float = 15
+    # Early-launch path: a token that was still under market_cap_min within its first
+    # `launch_window_hours` and has now crossed into the band fires without the relative volume
+    # spike (a day-old token has no baseline of its own to spike against). 0 disables it.
+    launch_window_hours: float = 24
+    # Optional floor for the early-launch path: 1h volume >= this fraction of market cap.
+    launch_min_volume_to_mcap: float = 0
 
 
 @dataclass
@@ -34,6 +40,7 @@ class Result:
     volume_multiple: Optional[float] = None
     crossed_after: Optional[float] = None  # last point seen below market_cap_min
     crossed_at: Optional[float] = None  # first point seen at/above it afterwards (crossing is between the two)
+    reasons: list[str] = field(default_factory=list)  # which path fired: "volume_spike", "early_launch"
 
 
 def volume_multiple(vol_h1: Optional[float], vol_h6: Optional[float], pair_age_hours: Optional[float]) -> Optional[float]:
@@ -71,10 +78,23 @@ def find_crossover(now: float, market_cap_min: float, lookback_hours: float,
     return last_below, (after[0] if after else now)
 
 
+def is_early_launch(obs: Observation, crossed_after: Optional[float], th: Thresholds) -> bool:
+    """Was still below the band within its first launch_window_hours (and crossed since)?"""
+    if th.launch_window_hours <= 0 or crossed_after is None or obs.pair_created_at is None:
+        return False
+    if crossed_after - obs.pair_created_at > th.launch_window_hours * HOUR:
+        return False
+    if th.launch_min_volume_to_mcap > 0:
+        if not obs.market_cap or (obs.vol_h1 or 0) < th.launch_min_volume_to_mcap * obs.market_cap:
+            return False
+    return True
+
+
 def evaluate(obs: Observation, history: Sequence[tuple[float, float]], th: Thresholds,
              require_liquidity: bool = True) -> Result:
     """All of: market cap in band, crossed up from below the band within the lookback,
-    1h volume >= multiplier x own 6h hourly average, liquidity and pair-age floors."""
+    liquidity and pair-age floors, and EITHER 1h volume >= multiplier x own 6h hourly average
+    OR the crossing happened within the token's first launch_window_hours (early launch)."""
     res = Result(fired=False)
     mc = obs.market_cap
 
@@ -89,7 +109,11 @@ def evaluate(obs: Observation, history: Sequence[tuple[float, float]], th: Thres
 
     age_h = None if obs.pair_created_at is None else (obs.ts - obs.pair_created_at) / HOUR
     res.volume_multiple = volume_multiple(obs.vol_h1, obs.vol_h6, age_h)
-    if res.volume_multiple is None or res.volume_multiple < th.volume_multiplier:
+    if res.volume_multiple is not None and res.volume_multiple >= th.volume_multiplier:
+        res.reasons.append("volume_spike")
+    if is_early_launch(obs, res.crossed_after, th):
+        res.reasons.append("early_launch")
+    if not res.reasons:
         res.failed.append("volume_spike")
 
     if require_liquidity and (obs.liquidity_usd is None or obs.liquidity_usd < th.min_liquidity_usd):

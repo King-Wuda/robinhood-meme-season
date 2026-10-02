@@ -13,8 +13,9 @@ def crossed_history():
 
 
 def test_fires_when_all_conditions_hold():
-    res = evaluate(obs(), crossed_history(), TH)
+    res = evaluate(obs(age_h=30), crossed_history(), TH)
     assert res.fired, res.failed
+    assert res.reasons == ["volume_spike"]
     assert res.volume_multiple == 3.0  # 60k / (120k / 6)
     assert res.crossed_after == NOW - HOUR
     assert res.crossed_at == NOW - 0.5 * HOUR
@@ -42,7 +43,33 @@ def test_crossing_time_is_after_last_below_point():
 
 
 def test_volume_spike_threshold():
-    assert "volume_spike" in evaluate(obs(h1=50_000), crossed_history(), TH).failed
+    assert "volume_spike" in evaluate(obs(h1=50_000, age_h=30), crossed_history(), TH).failed
+    assert "volume_spike" in evaluate(obs(h1=50_000), crossed_history(), Thresholds(launch_window_hours=0)).failed
+
+
+def test_early_launch_fires_without_volume_spike():
+    # 10h-old pair, crossed $1M 1h ago, flat volume (1.0x): early-launch path.
+    res = evaluate(obs(h1=20_000, age_h=10), crossed_history(), TH)
+    assert res.fired and res.reasons == ["early_launch"]
+
+
+def test_early_launch_window_is_measured_from_launch():
+    # Same crossing, but the pair is 30h old: it was over a day old while still under $1M.
+    res = evaluate(obs(h1=20_000, age_h=30), crossed_history(), TH)
+    assert not res.fired and "volume_spike" in res.failed
+    # Crossing at 23h old still counts even if evaluated after the 24h mark.
+    res = evaluate(obs(h1=20_000, age_h=24.5), crossed_history(), TH)
+    assert res.fired
+
+
+def test_early_launch_optional_volume_floor():
+    th = Thresholds(launch_min_volume_to_mcap=0.1)  # needs 1h vol >= $200k on a $2M cap
+    assert not evaluate(obs(h1=20_000, age_h=10), crossed_history(), th).fired
+    assert evaluate(obs(h1=250_000, h6=2_000_000, age_h=10), crossed_history(), th).reasons == ["early_launch"]
+
+
+def test_both_paths_reported():
+    assert evaluate(obs(age_h=10), crossed_history(), TH).reasons == ["volume_spike", "early_launch"]
 
 
 def test_young_pair_volume_baseline_uses_its_age():

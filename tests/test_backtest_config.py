@@ -32,8 +32,11 @@ def test_replay_fires_once_and_measures_outcome():
 
 
 def test_replay_respects_volume_multiplier():
-    r = replay(synthetic_history(), Thresholds(volume_multiplier=50), "runner", 6, 24)
+    r = replay(synthetic_history(), Thresholds(volume_multiplier=50, launch_window_hours=0), "runner", 6, 24)
     assert not r.fired
+    # The synthetic token crosses $1M at ~8h old, so the early-launch path still catches it.
+    r = replay(synthetic_history(), Thresholds(volume_multiplier=50), "runner", 6, 24)
+    assert r.fired and r.trigger == "early_launch"
 
 
 def test_unavailable_history_is_flagged():
@@ -46,7 +49,7 @@ def test_unavailable_history_is_flagged():
 
 def test_summary_counts_controls():
     runner = replay(synthetic_history(), Thresholds(), "runner", 6, 24)
-    control = replay(synthetic_history(), Thresholds(volume_multiplier=50), "control", 6, 24)
+    control = replay(synthetic_history(), Thresholds(volume_multiplier=50, launch_window_hours=0), "control", 6, 24)
     s = summarize([runner, control])
     assert s["hit_rate"] == 1.0 and s["false_positive_rate"] == 0.0
 
