@@ -26,13 +26,16 @@ Each poll (default every 90s):
    for 24h (configurable) and survive restarts.
 4. **Trigger.** An alert fires only when **all** of these hold:
    - a. market cap is between `market_cap_min` and `market_cap_max` (default $1M–$10M);
-   - b. **crossover:** market cap was below `market_cap_min` at some point within `lookback_hours`
-     (default 3h);
+   - b. **the move:** market cap is up at least `min_mcap_rise_pct` (default 50%) from its lowest
+     point in the last `lookback_hours` (default 3h). The token doesn't need to have started under
+     $1M; a push from $2M to $6M counts. This stops tokens that have sat in the band, or are
+     sliding, from firing on a volume spike. Set `require_crossover = true` to also require that
+     the window low was under `market_cap_min`;
    - c. **either** a **volume spike** (trailing 1h volume ≥ `volume_multiplier`, default 3, × the
-     token's trailing 6h hourly average) **or** an **early launch**: the token was still under
-     `market_cap_min` within its first `launch_window_hours` (default 24) of trading. Young tokens
-     have no baseline of their own to spike against, so the spike test alone misses fast launches.
-     Set `launch_window_hours = 0` to disable this path, or `launch_min_volume_to_mcap` (e.g. 0.1)
+     token's trailing 6h hourly average) **or** an **early launch**: the move started within the
+     token's first `launch_window_hours` (default 24). Young tokens have no baseline of their own
+     to spike against, so the spike test alone misses fast launches. Set
+     `launch_window_hours = 0` to disable this path, or `launch_min_volume_to_mcap` (e.g. 0.1)
      to also require 1h volume of at least that fraction of market cap. Alerts are labelled
      🚀 Momentum, 🆕 Early launch, or both;
    - d. liquidity ≥ `min_liquidity_usd` (default $50k) and pair age ≥ `min_pair_age_minutes`
@@ -50,11 +53,10 @@ Each poll (default every 90s):
   windows. For pairs younger than 6h it is `volume.h6 / age_hours` (age floored at 1h). Without
   that, a 2h-old token would always look like a 3x spike. As a result, a pair under 1 hour old
   can't trigger, because it has no history of its own to spike against.
-- **Crossover on first sight:** a token found while already in the band has no snapshots yet.
+- **Move on first sight:** a token found while already in the band has no snapshots yet.
   The API's 1h price change gives its market cap an hour ago (assuming constant supply), and that
-  value is used as an extra history point. Disable it with `use_price_change_inference = false`.
-  When that is the only evidence, the alert gives the crossing time as a range
-  ("between 0m and 1h 0m ago").
+  value is used as an extra history point, so the rise can be measured straight away. Disable it
+  with `use_price_change_inference = false`.
 - **Rate limits** (from the docs): 60 req/min for the profile and boost feeds, 300 req/min for
   tokens, pairs and search. The bot runs at 55 and 250, with calls evenly spaced. HTTP 429 and
   5xx responses back off exponentially and honour `Retry-After`. GeckoTerminal's free tier

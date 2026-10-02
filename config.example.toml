@@ -28,12 +28,14 @@ geckoterminal_rpm = 15              # free tier ~30/min, but it 429s on bursts
 [thresholds]
 market_cap_min = 1000000
 market_cap_max = 10000000
-lookback_hours = 3          # must have been below market_cap_min within this window
+lookback_hours = 3          # window for the move
+min_mcap_rise_pct = 50      # market cap must be up >= this % from its low in the window
+require_crossover = false   # true = the window low must also be under market_cap_min
 volume_multiplier = 3       # 1h volume >= this x own trailing-6h hourly average
 min_liquidity_usd = 50000
 min_pair_age_minutes = 15
-# Early launch: a token still under market_cap_min within its first N hours that crosses into the
-# band alerts WITHOUT needing the volume spike (young tokens have no baseline to spike against).
+# Early launch: if the move started within the token's first N hours, it alerts WITHOUT needing
+# the volume spike (young tokens have no baseline of their own to spike against).
 launch_window_hours = 24            # 0 disables the early-launch path
 launch_min_volume_to_mcap = 0       # optional: require 1h volume >= this fraction of market cap (e.g. 0.1)
 

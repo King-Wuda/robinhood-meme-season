@@ -17,6 +17,7 @@ def test_fires_when_all_conditions_hold():
     assert res.fired, res.failed
     assert res.reasons == ["volume_spike"]
     assert res.volume_multiple == 3.0  # 60k / (120k / 6)
+    assert res.low_mcap == 600_000 and round(res.rise_pct) == 233
     assert res.crossed_after == NOW - HOUR
     assert res.crossed_at == NOW - 0.5 * HOUR
 
@@ -26,14 +27,38 @@ def test_band_limits():
     assert "market_cap_band" in evaluate(obs(mc=11_000_000), crossed_history(), TH).failed
 
 
-def test_no_crossover_if_below_point_is_outside_lookback():
-    history = [(NOW - 4 * HOUR, 500_000), (NOW - 2 * HOUR, 1_500_000)]
-    assert "crossover" in evaluate(obs(), history, TH).failed
+def test_push_within_band_fires_without_crossover():
+    # $2M -> $6M in the last 2h with a volume spike: never under $1M, still fires.
+    history = [(NOW - 2 * HOUR, 2_000_000), (NOW - HOUR, 3_500_000)]
+    res = evaluate(obs(mc=6_000_000, age_h=30), history, TH)
+    assert res.fired, res.failed
+    assert res.rise_pct == 200 and res.crossed_at is None
 
 
-def test_no_crossover_if_always_in_band():
-    history = [(NOW - h * HOUR, 3_000_000) for h in (0.5, 1, 2)]
-    assert "crossover" in evaluate(obs(), history, TH).failed
+def test_require_crossover_option():
+    history = [(NOW - 2 * HOUR, 2_000_000), (NOW - HOUR, 3_500_000)]
+    res = evaluate(obs(mc=6_000_000, age_h=30), history, Thresholds(require_crossover=True))
+    assert "crossover" in res.failed
+    assert evaluate(obs(age_h=30), crossed_history(), Thresholds(require_crossover=True)).fired
+
+
+def test_no_fire_without_a_recent_rise():
+    # Sitting in the band (or falling) with a volume spike is not a push into the band.
+    flat = [(NOW - h * HOUR, 2_000_000) for h in (0.5, 1, 2)]
+    assert "mcap_rise" in evaluate(obs(age_h=30), flat, TH).failed
+    falling = [(NOW - HOUR, 3_000_000)]
+    assert "mcap_rise" in evaluate(obs(age_h=30), falling, TH).failed
+    # The rise is measured inside the lookback window only.
+    old_low = [(NOW - 4 * HOUR, 500_000), (NOW - 2 * HOUR, 1_800_000)]
+    assert "mcap_rise" in evaluate(obs(age_h=30), old_low, TH).failed
+    # No history at all: can't tell, so no fire.
+    assert "mcap_rise" in evaluate(obs(age_h=30), [], TH).failed
+
+
+def test_min_rise_threshold():
+    history = [(NOW - HOUR, 1_500_000)]  # +33%
+    assert "mcap_rise" in evaluate(obs(age_h=30), history, TH).failed
+    assert evaluate(obs(age_h=30), history, Thresholds(min_mcap_rise_pct=25)).fired
 
 
 def test_crossing_time_is_after_last_below_point():

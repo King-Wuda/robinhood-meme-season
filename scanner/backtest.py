@@ -20,7 +20,7 @@ from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Optional
 
-from .config import THRESHOLD_KEYS, Config
+from .config import THRESHOLD_KEYS, Config, _coerce
 from .http import ApiClient
 from .models import norm_address, to_float
 from .sources import geckoterminal as gt
@@ -82,6 +82,7 @@ class TokenResult:
     mcap_at_alert: Optional[float] = None
     volume_multiple: Optional[float] = None
     trigger: str = ""  # "volume_spike", "early_launch" or both
+    rise_pct: Optional[float] = None  # % up from the lookback-window low at alert time
     minutes_since_cross: Optional[float] = None
     peak_mcap_after: Optional[float] = None
     peak_multiple: Optional[float] = None
@@ -265,6 +266,7 @@ def replay(h: History, th: Thresholds, label: str, cooldown_hours: float, horizo
     r.mcap_at_alert = mcaps[i]
     r.volume_multiple = round(res.volume_multiple, 2) if res.volume_multiple is not None else None
     r.trigger = "+".join(res.reasons)
+    r.rise_pct = round(res.rise_pct, 1) if res.rise_pct is not None else None
     r.minutes_since_cross = round((t - res.crossed_at) / 60, 1) if res.crossed_at else None
     after = [x for x in c[i + 1:] if x[0] < t + horizon_hours * HOUR]
     if after:
@@ -333,7 +335,7 @@ def parse_sweep(specs: list[str]) -> list[dict]:
         key = key.strip()
         if key not in THRESHOLD_KEYS:
             raise ValueError(f"--sweep key {key!r} must be one of {sorted(THRESHOLD_KEYS)}")
-        axes[key] = [float(v) for v in values.split(",") if v.strip()]
+        axes[key] = [_coerce(key, v) for v in values.split(",") if v.strip()]
     if not axes:
         return [{}]
     return [dict(zip(axes, combo)) for combo in itertools.product(*axes.values())]
@@ -369,7 +371,7 @@ def run(cfg: Config, api: ApiClient, inputs: list[TokenInput], out_dir: str, swe
                        if r.peak_multiple is not None else "no candles after alert yet")
             report.append(
                 f"  {r.chain:<10} {r.symbol or r.address:<14} {r.label:<7} fired: YES at {r.alert_time} "
-                f"mc {r.mcap_at_alert:,.0f} ({r.mcap_source}), vol {r.volume_multiple}x via {r.trigger}, {outcome}, "
+                f"mc {r.mcap_at_alert:,.0f} ({r.mcap_source}), up {r.rise_pct}% in window, vol {r.volume_multiple}x via {r.trigger}, {outcome}, "
                 f"alerts {r.n_alerts}")
     report += ["", "Summary:", format_summary(summary, horizon_hours)]
     if not current_liquidity:

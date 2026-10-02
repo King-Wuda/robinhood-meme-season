@@ -64,6 +64,7 @@ DEFAULTS: dict = {
 }
 
 THRESHOLD_KEYS = {f.name for f in fields(Thresholds)}
+THRESHOLD_TYPES = {f.name: str(f.type) for f in fields(Thresholds)}
 
 
 @dataclass
@@ -135,11 +136,18 @@ def _apply_env(raw: dict, env: dict) -> dict:
     return raw
 
 
+def _coerce(key: str, value):
+    if key not in THRESHOLD_KEYS:
+        raise ValueError(f"unknown threshold key: {key}")
+    if THRESHOLD_TYPES[key] == "bool":
+        if isinstance(value, str):
+            return value.strip().lower() in ("1", "true", "yes", "on")
+        return bool(value)
+    return float(value)
+
+
 def _thresholds(values: dict) -> Thresholds:
-    unknown = set(values) - THRESHOLD_KEYS
-    if unknown:
-        raise ValueError(f"unknown threshold keys: {sorted(unknown)}")
-    return Thresholds(**{k: float(v) for k, v in values.items()})
+    return Thresholds(**{k: _coerce(k, v) for k, v in values.items()})
 
 
 def load_config(path: Optional[str] = None, env: Optional[dict] = None, include_disabled: bool = False) -> Config:
@@ -163,7 +171,7 @@ def load_config(path: Optional[str] = None, env: Optional[dict] = None, include_
         source = c.get("source", "dexscreener")
         if source not in ("dexscreener", "geckoterminal"):
             raise ValueError(f"chain {name}: source must be dexscreener or geckoterminal")
-        th = replace(base_thresholds, **{k: float(v) for k, v in c.get("thresholds", {}).items() if _check_key(k)})
+        th = replace(base_thresholds, **{k: _coerce(k, v) for k, v in c.get("thresholds", {}).items()})
         cdisc = c.get("discovery", {})
         cfg.chains[name] = ChainConfig(
             name=name,
@@ -177,9 +185,3 @@ def load_config(path: Optional[str] = None, env: Optional[dict] = None, include_
     if not cfg.chains:
         raise ValueError("no chains enabled")
     return cfg
-
-
-def _check_key(k: str) -> bool:
-    if k not in THRESHOLD_KEYS:
-        raise ValueError(f"unknown threshold key: {k}")
-    return True

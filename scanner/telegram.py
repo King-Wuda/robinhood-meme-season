@@ -66,7 +66,10 @@ def duration(seconds: float) -> str:
 
 def format_alert(p: PairData, res: Result, now: float, band_min: float, chart: str) -> str:
     e = html.escape
-    crossed = "n/a"
+    move = "n/a"
+    if res.rise_pct is not None:
+        move = f"+{res.rise_pct:.0f}% from {usd(res.low_mcap)} low {duration(now - res.low_ts)} ago"
+    crossed = None
     if res.crossed_at is not None:
         lo, hi = now - res.crossed_at, now - res.crossed_after
         crossed = f"~{duration(hi)} ago" if hi - lo <= 180 else f"between {duration(lo)} and {duration(hi)} ago"
@@ -79,7 +82,8 @@ def format_alert(p: PairData, res: Result, now: float, band_min: float, chart: s
         f"Market cap: <b>{usd(p.market_cap)}</b> ({p.mcap_source})",
         f"Volume: <b>{res.volume_multiple or 0:.1f}x</b> its own 6h hourly avg (1h vol {usd(p.vol_h1)})",
         f"Liquidity: {usd(p.liquidity_usd)}",
-        f"Crossed {usd(band_min)}: {crossed}",
+        f"Move: {move}",
+        *([f"Crossed {usd(band_min)}: {crossed}"] if crossed else []),
         f"Pair age: {age}",
         f"Chart: {e(chart)}",
         f"CA: <code>{e(p.token_address)}</code>",

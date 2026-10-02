@@ -225,7 +225,9 @@ def startup_message(cfg: Config) -> str:
     for c in cfg.chains.values():
         t = c.thresholds
         lines.append(f"• {c.name} via {c.source}: band {usd(t.market_cap_min)}-{usd(t.market_cap_max)}, "
-                     f"vol ≥{t.volume_multiplier:g}x, lookback {t.lookback_hours:g}h, "
+                     f"up ≥{t.min_mcap_rise_pct:g}% in {t.lookback_hours:g}h"
+                     + (" (must cross band min)" if t.require_crossover else "")
+                     + f", vol ≥{t.volume_multiplier:g}x, "
                      f"liq ≥{usd(t.min_liquidity_usd)}, age ≥{t.min_pair_age_minutes:g}m, "
                      + (f"early-launch window {t.launch_window_hours:g}h" if t.launch_window_hours > 0
                         else "early-launch off"))

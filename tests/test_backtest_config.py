@@ -57,6 +57,7 @@ def test_summary_counts_controls():
 def test_parse_sweep():
     combos = parse_sweep(["volume_multiplier=2,3", "lookback_hours=2,3,6"])
     assert len(combos) == 6 and {"volume_multiplier": 2.0, "lookback_hours": 6.0} in combos
+    assert parse_sweep(["require_crossover=false,true"]) == [{"require_crossover": False}, {"require_crossover": True}]
 
 
 def test_load_inputs_csv_and_json(tmp_path):
@@ -76,7 +77,10 @@ def test_config_env_overrides_and_per_chain_thresholds(tmp_path):
         "SCANNER_CHAINS": "solana,robinhood",
         "SCANNER__SCANNER__POLL_INTERVAL_SECONDS": "60",
         "SCANNER__CHAINS__ROBINHOOD__THRESHOLDS__VOLUME_MULTIPLIER": "5",
+        "SCANNER__CHAINS__ROBINHOOD__THRESHOLDS__REQUIRE_CROSSOVER": "true",
     })
+    assert cfg.chains["robinhood"].thresholds.require_crossover is True
+    assert cfg.chains["solana"].thresholds.require_crossover is False
     assert set(cfg.chains) == {"solana", "robinhood"}
     assert cfg.poll_interval_seconds == 60
     assert cfg.chains["solana"].thresholds.volume_multiplier == 4
