@@ -168,7 +168,7 @@ python -m scanner backtest runners.csv --controls did_not_run.csv \
   skipped silently.
 - **Replay:** the *same* `trigger.evaluate` function the live bot uses runs on every candle
   close, in time order, with the same per-chain thresholds and cooldown.
-- **Per token:** fired yes/no, alert time, market cap at alert, peak market cap afterwards,
+- **Per token:** fired yes/no, alert time, market cap at alert, peak market cap afterwards (from 5-minute closes, so bad wicks are ignored),
   peak-to-alert multiple, and max drawdown after the alert. Max drawdown is the worst low
   relative to the entry, 0% if price never went below it. Also: return at the end of the horizon
   (`--horizon-hours`, default 24) and the number of alerts.

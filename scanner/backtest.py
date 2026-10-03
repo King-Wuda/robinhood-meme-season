@@ -273,8 +273,10 @@ def replay(h: History, th: Thresholds, label: str, cooldown_hours: float, horizo
     r.minutes_since_cross = round((t - res.crossed_at) / 60, 1) if res.crossed_at else None
     after = [x for x in c[i + 1:] if x[0] < t + horizon_hours * HOUR]
     if after:
-        peak = max(x[2] for x in after) * h.supply
-        trough = min(x[3] for x in after) * h.supply
+        # Closes, not highs/lows: OHLCV wicks include bad single-trade prints (seen: a 5m
+        # candle with a high 50,000x its close), which would wreck peak/drawdown figures.
+        peak = max(x[4] for x in after) * h.supply
+        trough = min(x[4] for x in after) * h.supply
         end = after[-1][4] * h.supply
         r.peak_mcap_after = peak
         r.peak_multiple = round(peak / r.mcap_at_alert, 2)
