@@ -98,3 +98,11 @@ def test_pick_pool_prefers_launch_pool():
     ]
     assert pick_pool(pools)["attributes"]["address"] == "launch"
     assert pick_pool(pools, "liquid")["attributes"]["address"] == "late"
+
+
+def test_replay_since_reports_only_later_alerts():
+    h = synthetic_history()
+    first = replay(h, Thresholds(), "runner", 6, 24)
+    assert first.fired
+    later = replay(h, Thresholds(), "runner", 6, 24, since=first.alert_ts + 1)
+    assert not later.fired or later.alert_ts > first.alert_ts

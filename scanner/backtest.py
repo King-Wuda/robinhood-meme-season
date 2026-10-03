@@ -225,7 +225,9 @@ def _fetch_history(api: ApiClient, cfg: Config, tok: TokenInput, max_days: float
 # ---------------- replay ----------------
 
 def replay(h: History, th: Thresholds, label: str, cooldown_hours: float, horizon_hours: float,
-           current_liquidity: bool = False) -> TokenResult:
+           current_liquidity: bool = False, since: Optional[float] = None) -> TokenResult:
+    """Replay the trigger over history. With `since`, only alerts at/after that time are reported
+    (earlier history still feeds the lookback window and the cooldown)."""
     r = TokenResult(h.chain, h.address, h.symbol, label, "ok", h.mcap_source)
     if h.error:
         r.history = f"UNAVAILABLE: {h.error}"
@@ -253,7 +255,8 @@ def replay(h: History, th: Thresholds, label: str, cooldown_hours: float, horizo
         obs = Observation(t, mcaps[i], vol(t, HOUR), vol(t, 6 * HOUR), liq, h.created_at)
         res = evaluate(obs, history, th, require_liquidity=current_liquidity)
         if res.fired and not in_cooldown(last_alert, t, cooldown_hours):
-            alerts.append((i, t, res))
+            if since is None or t >= since:
+                alerts.append((i, t, res))
             last_alert = t
 
     r.n_alerts = len(alerts)
