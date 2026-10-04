@@ -11,7 +11,10 @@ from __future__ import annotations
 
 import copy
 import os
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10 (e.g. Ubuntu 22.04): same API from the tomli backport
+    import tomli as tomllib
 from dataclasses import dataclass, field, fields, replace
 from pathlib import Path
 from typing import Optional

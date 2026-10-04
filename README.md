@@ -103,12 +103,12 @@ sudo git clone <this repo> /opt/meme-scanner
 cd /opt/meme-scanner
 sudo python3 -m venv .venv
 sudo .venv/bin/pip install -r requirements.txt
-sudo cp config.example.toml config.toml        # edit as needed
+sudo cp config.recommended.toml config.toml    # tuned starting point (or config.example.toml for all options)
 sudo mkdir -p data logs && sudo chown -R scanner:scanner /opt/meme-scanner
 ```
 
-Python 3.11+ is required (the config is read with the standard-library `tomllib`). The only
-runtime dependency is `httpx`.
+Python 3.10+ is required (3.10 installs the small `tomli` package automatically). The only
+other runtime dependency is `httpx`.
 
 ### 3. Set the env vars (secrets never go in the config file)
 

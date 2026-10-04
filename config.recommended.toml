@@ -1,0 +1,32 @@
+# Recommended starting config, based on the Sep 3 - Oct 3 2026 backtest of ~540 Robinhood and
+# Solana tokens. Copy to config.toml. Anything not set here uses the defaults documented in
+# config.example.toml.
+#
+# Why these values:
+#  - Robinhood + Solana only: BNB and Base were not part of the tuning.
+#  - 24h cooldown: repeat alerts on the same token mostly fired after the move and lost money
+#    (median -12% after 24h). One alert per token per day keeps the first, useful one.
+#  - Stricter Robinhood momentum (5x volume, +100% rise): Robinhood momentum alerts were the weakest
+#    signal. Over the month this cut Robinhood alerts from 96 to 53 tokens, kept all five 10x winners,
+#    and raised the share that doubled within 24h from 39% to 60%.
+# These were tuned on the same month they were measured on, so expect live results to be worse.
+# Re-check with `python -m scanner backtest ... --sweep` once you have a few weeks of live alerts.
+
+[scanner]
+alert_cooldown_hours = 24
+
+[chains.solana]
+enabled = true
+
+[chains.robinhood]
+enabled = true
+
+[chains.robinhood.thresholds]
+volume_multiplier = 5
+min_mcap_rise_pct = 100
+
+[chains.bsc]
+enabled = false
+
+[chains.base]
+enabled = false
