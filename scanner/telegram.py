@@ -47,6 +47,31 @@ class Telegram:
             return False
 
 
+def find_chats(token: str) -> tuple[Optional[str], list[dict]]:
+    """Bot username plus the chats that have recently messaged the bot (via getUpdates).
+
+    Telegram only reports chats that sent the bot a message in the last ~24h, so the user
+    must message the bot (or post in a group it was added to) before running this.
+    """
+    base = f"https://api.telegram.org/bot{token}"
+    me = httpx.get(f"{base}/getMe", timeout=20)
+    if me.status_code != 200:
+        raise ValueError(f"Telegram rejected the bot token (HTTP {me.status_code}): {me.text[:200]}")
+    username = me.json().get("result", {}).get("username")
+    updates = httpx.get(f"{base}/getUpdates", timeout=20).json().get("result", [])
+    chats: dict[int, dict] = {}
+    for u in updates:
+        msg = u.get("message") or u.get("channel_post") or u.get("my_chat_member") or {}
+        chat = msg.get("chat")
+        if chat:
+            chats[chat["id"]] = {
+                "id": chat["id"], "type": chat.get("type"),
+                "name": chat.get("title") or " ".join(filter(None, [chat.get("first_name"), chat.get("last_name")]))
+                or chat.get("username") or "",
+            }
+    return username, list(chats.values())
+
+
 def usd(v: Optional[float]) -> str:
     if v is None:
         return "n/a"

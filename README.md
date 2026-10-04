@@ -80,12 +80,20 @@ Each poll (default every 90s):
 
 ### 1. Create the Telegram bot
 
-1. In Telegram, open **@BotFather** and send `/newbot`. Pick a name and a username. BotFather
-   replies with a **bot token** like `123456789:AA...`.
-2. Open a chat with your new bot and send it any message, for example `hi`.
-3. Get your **chat ID** from
-   `https://api.telegram.org/bot<TOKEN>/getUpdates` (look for `"chat":{"id":...}`).
-   For a group, add the bot to the group, post a message there, and use the group's (negative) id.
+1. In Telegram, open **@BotFather** and send `/newbot`. Pick a name and a username (must end in
+   `bot`). BotFather replies with a **bot token** like `123456789:AA...`. Keep it secret: anyone
+   with it can post as your bot. If it leaks, send `/revoke` to BotFather for a new one.
+2. Open a chat with your new bot (BotFather links it) and press **Start**, or send it any message.
+   For alerts in a group, add the bot to the group and post a message there.
+3. Get your **chat ID**:
+   ```bash
+   TELEGRAM_BOT_TOKEN='123456789:AA...' python -m scanner telegram-chat-id
+   ```
+   It prints `TELEGRAM_CHAT_ID=...` for every chat that has messaged the bot recently.
+4. Check delivery:
+   ```bash
+   TELEGRAM_BOT_TOKEN='...' TELEGRAM_CHAT_ID='...' python -m scanner test-telegram
+   ```
 
 ### 2. Install on the VPS
 
@@ -194,6 +202,7 @@ python -m scanner backtest runners.csv --controls did_not_run.csv \
 | `python -m scanner run` | polling loop (what systemd runs) |
 | `python -m scanner once` | a single poll, then exit |
 | `python -m scanner check-sources` | verify each chain's DEXScreener slug and GeckoTerminal coverage |
+| `python -m scanner telegram-chat-id` | find your chat ID after messaging the bot |
 | `python -m scanner test-telegram` | send a test message |
 | `python -m scanner backtest FILE [...]` | backtest / parameter sweep |
 

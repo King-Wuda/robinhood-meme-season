@@ -1,4 +1,4 @@
-"""CLI entry point: python -m scanner {run,once,check-sources,test-telegram,backtest}."""
+"""CLI entry point: python -m scanner {run,once,check-sources,telegram-chat-id,test-telegram,backtest}."""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +13,7 @@ from .db import Store
 from .poller import Poller, make_api, startup_message
 from .sources import dexscreener as ds
 from .sources import geckoterminal as gt
-from .telegram import Telegram
+from .telegram import Telegram, find_chats
 
 
 def setup_logging(log_path: str, level: str) -> None:
@@ -65,6 +65,7 @@ def main(argv=None) -> int:
     sub.add_parser("run", help="run the polling loop forever")
     sub.add_parser("once", help="run a single poll and exit")
     sub.add_parser("check-sources", help="verify chain slugs / API coverage")
+    sub.add_parser("telegram-chat-id", help="find your chat ID after you message the bot")
     sub.add_parser("test-telegram", help="send a test message")
     bt = sub.add_parser("backtest", help="replay the trigger over historical data")
     bt.add_argument("tokens", help="CSV or JSON with chain,address[,label][,pool]")
@@ -89,6 +90,24 @@ def main(argv=None) -> int:
 
     if args.cmd == "check-sources":
         return check_sources(cfg, api)
+    if args.cmd == "telegram-chat-id":
+        token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        if not token:
+            print("Set TELEGRAM_BOT_TOKEN first (from @BotFather).")
+            return 1
+        try:
+            username, chats = find_chats(token)
+        except ValueError as exc:
+            print(exc)
+            return 1
+        if not chats:
+            print(f"Token OK (bot @{username}), but no chats found. Open https://t.me/{username}, press Start "
+                  "or send it any message, then run this again.")
+            return 1
+        print(f"Bot @{username} has been messaged from:")
+        for c in chats:
+            print(f"  TELEGRAM_CHAT_ID={c['id']}   ({c['type']}: {c['name']})")
+        return 0
     if args.cmd == "test-telegram":
         tg = Telegram()
         if not tg.enabled:
