@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+data/
+logs/
+backtest_out/
+config.toml
+.env

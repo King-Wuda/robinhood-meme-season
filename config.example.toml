@@ -1,0 +1,90 @@
+# Copy to config.toml and edit. Every key is optional; omitted keys use the defaults shown.
+# Any key can also be overridden by env var: SCANNER__<SECTION>__<KEY>=value
+#   e.g. SCANNER__THRESHOLDS__VOLUME_MULTIPLIER=4
+#        SCANNER__CHAINS__ROBINHOOD__THRESHOLDS__MIN_LIQUIDITY_USD=30000
+# SCANNER_CHAINS=solana,bsc,base,robinhood enables exactly those chains.
+# Telegram credentials are env-only: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
+
+[scanner]
+poll_interval_seconds = 90
+db_path = "data/scanner.db"
+log_path = "logs/scanner.log"
+log_level = "INFO"                  # DEBUG also logs near-misses (tokens failing one condition)
+snapshot_retention_hours = 24       # must be >= 6
+alert_cooldown_hours = 6
+stale_hours = 24                    # drop a token after this long with no 1h volume
+dead_market_cap = 10000             # drop tokens below this once tracked for dead_after_hours
+dead_after_hours = 2
+drop_above_band_multiple = 3        # drop tokens above market_cap_max x this
+max_tracked_tokens_per_chain = 1500 # lowest-volume tokens are evicted above this
+use_price_change_inference = true   # use the API's 1h price change as a market-cap point 1h ago
+error_alert_threshold = 5           # Telegram warning after this many consecutive failed polls
+error_alert_repeat_minutes = 60
+dexscreener_rpm_feeds = 55          # docs: 60/min for profile/boost feeds
+dexscreener_rpm_pairs = 250         # docs: 300/min for tokens/pairs/search
+geckoterminal_rpm = 15              # free tier ~30/min, but it 429s on bursts
+
+# Trigger thresholds (defaults for every chain)
+[thresholds]
+market_cap_min = 1000000
+market_cap_max = 10000000
+lookback_hours = 3          # window for the move
+min_mcap_rise_pct = 50      # market cap must be up >= this % from its low in the window
+require_crossover = false   # true = the window low must also be under market_cap_min
+volume_multiplier = 3       # 1h volume >= this x own trailing-6h hourly average
+min_liquidity_usd = 50000
+min_pair_age_minutes = 15
+# Early launch: if the move started within the token's first N hours, it alerts WITHOUT needing
+# the volume spike (young tokens have no baseline of their own to spike against).
+launch_window_hours = 24            # 0 disables the early-launch path
+launch_min_volume_to_mcap = 0       # optional: require 1h volume >= this fraction of market cap (e.g. 0.1)
+
+# What gets tracked (pre-filter, before the trigger)
+[discovery]
+min_market_cap = 30000
+min_liquidity_usd = 5000
+dexscreener_feeds = true            # latest profiles, boosts, top boosts, community takeovers
+dexscreener_search_queries = []     # e.g. ["inu", "pepe"]: each adds one search call per poll
+geckoterminal = true                # new + trending pools per chain (much broader discovery)
+geckoterminal_pages = 1
+recheck_rejected_minutes = 15
+
+[chains.solana]
+enabled = true
+source = "dexscreener"              # live data source: "dexscreener" or "geckoterminal"
+dexscreener_id = "solana"
+geckoterminal_id = "solana"
+
+[chains.bsc]
+enabled = false                     # off for now: only Robinhood + Solana are scanned
+source = "dexscreener"
+dexscreener_id = "bsc"
+geckoterminal_id = "bsc"
+
+[chains.base]
+enabled = false                     # off for now
+source = "dexscreener"
+dexscreener_id = "base"
+geckoterminal_id = "base"
+
+# Robinhood Chain: slug "robinhood" verified on both DEXScreener and GeckoTerminal (Oct 2026).
+[chains.robinhood]
+enabled = true
+source = "dexscreener"
+dexscreener_id = "robinhood"
+geckoterminal_id = "robinhood"
+
+# Per-chain overrides. Any [thresholds] key can go here. Starting values equal the defaults:
+# tune them with `python -m scanner backtest ... --sweep` on Robinhood tokens.
+[chains.robinhood.thresholds]
+market_cap_min = 1000000
+market_cap_max = 10000000
+volume_multiplier = 3
+min_liquidity_usd = 50000
+min_pair_age_minutes = 15
+launch_window_hours = 24
+
+# Per-chain discovery floors are also allowed:
+# [chains.robinhood.discovery]
+# min_market_cap = 50000
+# min_liquidity_usd = 10000
