@@ -1,8 +1,10 @@
 # Meme Coin Momentum Scanner
 
-Polls DEXScreener for tokens on **Solana, BNB Chain, Base and Robinhood Chain** and sends a Telegram
-alert when a token **recently crossed from under $1M market cap into the $1M–$10M band with a
-volume spike relative to its own recent average**.
+Polls DEXScreener for tokens on **Robinhood Chain and Solana** (BNB Chain and Base are supported but
+off by default; set `enabled = true` under their `[chains.*]` section to add them) and sends a Telegram
+alert when a token is **pushed into the $1M–$10M market-cap band by a recent move**: market cap up
+sharply in the last few hours, with either a volume spike relative to its own recent average or a
+fresh launch.
 
 It is a **pre-screen only**. It flags candidates for manual narrative research. It never buys or
 sells, has no wallet integration and does no news or text analysis.

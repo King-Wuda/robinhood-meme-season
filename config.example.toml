@@ -56,13 +56,13 @@ dexscreener_id = "solana"
 geckoterminal_id = "solana"
 
 [chains.bsc]
-enabled = true
+enabled = false                     # off for now: only Robinhood + Solana are scanned
 source = "dexscreener"
 dexscreener_id = "bsc"
 geckoterminal_id = "bsc"
 
 [chains.base]
-enabled = true
+enabled = false                     # off for now
 source = "dexscreener"
 dexscreener_id = "base"
 geckoterminal_id = "base"

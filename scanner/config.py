@@ -60,8 +60,8 @@ DEFAULTS: dict = {
     },
     "chains": {
         "solana": {"enabled": True, "source": "dexscreener", "dexscreener_id": "solana", "geckoterminal_id": "solana"},
-        "bsc": {"enabled": True, "source": "dexscreener", "dexscreener_id": "bsc", "geckoterminal_id": "bsc"},
-        "base": {"enabled": True, "source": "dexscreener", "dexscreener_id": "base", "geckoterminal_id": "base"},
+        "bsc": {"enabled": False, "source": "dexscreener", "dexscreener_id": "bsc", "geckoterminal_id": "bsc"},
+        "base": {"enabled": False, "source": "dexscreener", "dexscreener_id": "base", "geckoterminal_id": "base"},
         "robinhood": {"enabled": True, "source": "dexscreener", "dexscreener_id": "robinhood", "geckoterminal_id": "robinhood"},
     },
 }
