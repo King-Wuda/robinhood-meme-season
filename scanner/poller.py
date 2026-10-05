@@ -153,7 +153,12 @@ class Poller:
                 and p.price_change_h1 > -99.9:
             # The API's 1h price change gives us the market cap one hour ago (constant supply),
             # so a crossover is detectable even for tokens we only just started tracking.
-            history.append((now - HOUR, p.market_cap / (1 + p.price_change_h1 / 100)))
+            # For a pair younger than 1h that change is measured from its first trade, so the
+            # point belongs at launch time, not an hour ago.
+            then = now - HOUR
+            if p.pair_created_at and p.pair_created_at > then:
+                then = p.pair_created_at
+            history.append((then, p.market_cap / (1 + p.price_change_h1 / 100)))
         obs = Observation(now, p.market_cap, p.vol_h1, p.vol_h6, p.liquidity_usd, p.pair_created_at)
         res = evaluate(obs, history, th)
         if len(res.failed) == 1:

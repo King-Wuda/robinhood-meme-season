@@ -116,3 +116,14 @@ def test_cooldown():
     assert in_cooldown(NOW - 5 * HOUR, NOW, 6)
     assert not in_cooldown(NOW - 7 * HOUR, NOW, 6)
     assert not in_cooldown(None, NOW, 6)
+
+
+def test_min_volume_floor():
+    th = Thresholds(min_volume_h1_usd=100_000)
+    # Early-launch token with plenty of everything except 1h volume: blocked.
+    res = evaluate(obs(h1=7_000, h6=7_000, age_h=0.4), crossed_history(), th)
+    assert "min_volume" in res.failed
+    # Same rules, real trading: fires.
+    assert evaluate(obs(h1=150_000, h6=300_000, age_h=10), crossed_history(), th).fired
+    # Off by default.
+    assert "min_volume" not in evaluate(obs(h1=7_000, age_h=10), crossed_history(), TH).failed
