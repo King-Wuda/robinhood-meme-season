@@ -78,3 +78,13 @@ def test_rejects_below_discovery_floor_and_drops_stale(tmp_path):
     p.data["0xabc"] = pair(500_000, h1=0, h6=0, h24=0)
     p.process_chain(chain, {}, NOW + 2 * HOUR)
     assert not store.is_tracked("robinhood", "0xabc")
+
+
+def test_young_pair_move_is_measured_from_launch(tmp_path):
+    p, store, tg = make(tmp_path)
+    chain = p.cfg.chains["robinhood"]
+    young = pair(2_000_000, h1=500_000, h6=500_000, pc_h1=900)  # 10x since first trade
+    young.pair_created_at = NOW - 20 * 60
+    p.data["0xabc"] = young
+    assert p.process_chain(chain, {"0xabc": Candidate("robinhood", "0xabc", "test")}, NOW) == 1
+    assert "since launch 20m ago" in tg.sent[0]

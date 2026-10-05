@@ -93,7 +93,10 @@ def format_alert(p: PairData, res: Result, now: float, band_min: float, chart: s
     e = html.escape
     move = "n/a"
     if res.rise_pct is not None:
-        move = f"+{res.rise_pct:.0f}% from {usd(res.low_mcap)} low {duration(now - res.low_ts)} ago"
+        if p.pair_created_at and res.low_ts is not None and abs(res.low_ts - p.pair_created_at) < 120:
+            move = f"+{res.rise_pct:.0f}% since launch {duration(now - res.low_ts)} ago (first price {usd(res.low_mcap)})"
+        else:
+            move = f"+{res.rise_pct:.0f}% from {usd(res.low_mcap)} low {duration(now - res.low_ts)} ago"
     crossed = None
     if res.crossed_at is not None:
         lo, hi = now - res.crossed_at, now - res.crossed_after
