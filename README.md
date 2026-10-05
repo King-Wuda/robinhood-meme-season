@@ -40,8 +40,8 @@ Each poll (default every 90s):
      `launch_window_hours = 0` to disable this path, or `launch_min_volume_to_mcap` (e.g. 0.1)
      to also require 1h volume of at least that fraction of market cap. Alerts are labelled
      🚀 Momentum, 🆕 Early launch, or both;
-   - d. liquidity ≥ `min_liquidity_usd` (default $50k) and pair age ≥ `min_pair_age_minutes`
-     (default 15).
+   - d. liquidity ≥ `min_liquidity_usd` (default $50k), 1h volume ≥ `min_volume_h1_usd` (default off;
+     $100k in `config.recommended.toml`) and pair age ≥ `min_pair_age_minutes` (default 15).
 5. **Cooldown.** Each token alerts at most once per 6h (configurable).
 6. **Pruning.** Tokens are dropped after 24h with no volume, when still under $10k after 2h, when
    above 3× the band top, or when the API has returned no data for them for over an hour.

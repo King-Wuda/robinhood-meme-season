@@ -21,6 +21,9 @@ class Thresholds:
     volume_multiplier: float = 3
     min_liquidity_usd: float = 50_000
     min_pair_age_minutes: float = 15
+    # Absolute floor on trailing 1h volume (USD) for any alert. Filters pools that show a $1M+
+    # market cap with almost no trading (e.g. liquidity seeded to equal the market cap). 0 = off.
+    min_volume_h1_usd: float = 0
     # Early-launch path: if the move started within the token's first `launch_window_hours`,
     # it fires without the relative volume spike (a day-old token has no baseline of its own
     # to spike against). 0 disables it.
@@ -118,7 +121,7 @@ def evaluate(obs: Observation, history: Sequence[tuple[float, float]], th: Thres
         (and, if require_crossover, that low was under market_cap_min);
       - EITHER 1h volume >= volume_multiplier x own 6h hourly average (volume spike)
         OR the move started within the token's first launch_window_hours (early launch);
-      - liquidity and pair-age floors.
+      - liquidity, 1h-volume and pair-age floors.
     """
     res = Result(fired=False)
     mc = obs.market_cap
@@ -147,6 +150,9 @@ def evaluate(obs: Observation, history: Sequence[tuple[float, float]], th: Thres
         res.reasons.append("early_launch")
     if not res.reasons:
         res.failed.append("volume_spike")
+
+    if th.min_volume_h1_usd > 0 and (obs.vol_h1 is None or obs.vol_h1 < th.min_volume_h1_usd):
+        res.failed.append("min_volume")
 
     if require_liquidity and (obs.liquidity_usd is None or obs.liquidity_usd < th.min_liquidity_usd):
         res.failed.append("liquidity")

@@ -33,6 +33,7 @@ min_mcap_rise_pct = 50      # market cap must be up >= this % from its low in th
 require_crossover = false   # true = the window low must also be under market_cap_min
 volume_multiplier = 3       # 1h volume >= this x own trailing-6h hourly average
 min_liquidity_usd = 50000
+min_volume_h1_usd = 0       # any alert needs at least this much 1h volume (USD); 0 = off
 min_pair_age_minutes = 15
 # Early launch: if the move started within the token's first N hours, it alerts WITHOUT needing
 # the volume spike (young tokens have no baseline of their own to spike against).

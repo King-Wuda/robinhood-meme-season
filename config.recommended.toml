@@ -15,6 +15,11 @@
 [scanner]
 alert_cooldown_hours = 24
 
+[thresholds]
+# Every alert needs at least $100k of trading in the last hour. Added after a live alert on a
+# 21-minute-old pool with ~$1M liquidity, a $1M market cap and only $7k of volume.
+min_volume_h1_usd = 100000
+
 [chains.solana]
 enabled = true
 
